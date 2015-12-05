@@ -186,6 +186,7 @@ HarView.prototype = Lib.extend(new TabView(),
     setPreviewColumns: function(cols, avoidCookies)
     {
         RequestList.setVisibleColumns(cols, avoidCookies);
+        console.log(cols) // bpappas
     }
 });
 

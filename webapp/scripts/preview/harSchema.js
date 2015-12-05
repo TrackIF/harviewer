@@ -179,7 +179,7 @@ var postDataType = {
         "description": "Posted data info.",
         "optional": true,
         "properties": {
-            "mimeType": {"type": "string"},
+            "mimeType": {"type": "string", "optional": true}, // bpappas - Chrome 48 is not always including mimeType in it's HAR dumps
             "text": {"type": "string", "optional": true},
             "params": {
                 "type": "array",

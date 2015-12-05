@@ -101,6 +101,7 @@ PageList.prototype = domplate(
                 requestList.addPageTiming(pageTimings[i]);
 
             requestList.render(infoBodyRow.firstChild, row.repObject);
+            console.log("here");
         }
         else
         {

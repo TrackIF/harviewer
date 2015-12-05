@@ -85,6 +85,7 @@ RequestList.columns = [
  * List of columns that are visible by default.
  */
 RequestList.defaultColumns = [
+    "index",
     "url",
     "status",
     "size",
@@ -96,9 +97,11 @@ RequestList.defaultColumns = [
  */
 RequestList.getVisibleColumns = function()
 {
+    /* bpappas - force in the index column!!!
     var cols = Cookies.getCookie("previewCols");
     if (cols)
     {
+        console.log("found in cookie");
         // Columns names are separated by a space so, make sure to properly process
         // spaces in the cookie value.
         cols = cols.replace(/\+/g, " ");
@@ -111,12 +114,14 @@ RequestList.getVisibleColumns = function()
         var content = document.getElementById("content");
         if (content)
         {
+            console.log("found in doc element")
             cols = content.getAttribute("previewCols");
             if (cols)
                 return cols.split(" ");
         }
     }
-
+    */
+    console.log("found in defaults")
     return Lib.cloneArray(RequestList.defaultColumns);
 }
 
