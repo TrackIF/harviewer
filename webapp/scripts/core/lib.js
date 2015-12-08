@@ -440,6 +440,26 @@ Lib.getFileName = function(url)
     return url;
 };
 
+Lib.getSimpleDomain = function(url)
+{
+    try
+    {
+        
+        var reSimpleDomain = /^https?:\/\/\/?(?:([-\w]+)\.)+/gmi;
+        var m = reSimpleDomain.exec(url);
+        if (!m)
+            return url;
+        else if (!m[1])
+            return url;
+        else
+            return m[1];
+    }
+    catch (e)
+    {
+
+    }
+};
+
 Lib.getFileExtension = function(url)
 {
     if (!url)

@@ -229,9 +229,9 @@ RequestList.prototype = domplate(
                 ),
                 TD({"class": "netHrefCol netCol"},
                     DIV({"class": "netHrefLabel netLabel",
-                         style: "margin-left: $file|getIndent\\px"},
+                         style: "margin-left: $file|getIndent\\px; $file|getBGColor"},
                         "$file|getHref"
-                    ),
+                    ), // bpappas - this is the getRequest field
                     DIV({"class": "netFullHrefLabel netHrefLabel netLabel",
                          style: "margin-left: $file|getIndent\\px"},
                         "$file|getFullHref"
@@ -244,7 +244,7 @@ RequestList.prototype = domplate(
                     DIV({"class": "netTypeLabel netLabel"}, "$file|getType")
                 ),
                 TD({"class": "netDomainCol netCol"},
-                    DIV({"class": "netDomainLabel netLabel"}, "$file|getDomain")
+                   DIV({"class": "netDomainLabel netLabel"}, "$file|getDomain")
                 ),
                 TD({"class": "netSizeCol netCol"},
                     DIV({"class": "netSizeLabel netLabel"}, "$file|getSize")
@@ -327,6 +327,19 @@ RequestList.prototype = domplate(
         return 0;
     },
 
+    getBGColor: function(file)
+    {
+        var simpleDomain = Lib.getSimpleDomain(this.getFullHref(file));
+        if (simpleDomain.search(/homedepot/) != -1)
+            return "background-color: #ff6100;";
+
+        var url = unescape(file.request.url);
+        if (url.search(/hdfavorites/) != -1)
+            return "background-color: #2eaf80;";
+        else
+            return "";
+    },
+
     isError: function(file)
     {
         var errorRange = Math.floor(file.response.status/100);
@@ -348,7 +361,7 @@ RequestList.prototype = domplate(
 
     getHref: function(file)
     {
-        var fileName = Lib.getFileName(this.getFullHref(file));
+        var fileName = Lib.getSimpleDomain(this.getFullHref(file));
         return unescape(file.request.method + " " + fileName);
     },
 
@@ -1058,7 +1071,7 @@ RequestList.prototype = domplate(
         var tbody = this.table.firstChild;
         var lastRow = tbody.lastChild.previousSibling;
 
-        var result = this.fileTag.insertRows({files: entries, renderOpts: renderOpts}, lastRow, this);
+        var result = this.fileTag.insertRows({files: entries, renderOpts: renderOpts}, lastRow, this); // render out getRequests
         this.updateLayout(this.table, page);
 
         return result[0];
