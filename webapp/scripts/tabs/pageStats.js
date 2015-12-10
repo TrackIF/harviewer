@@ -132,24 +132,24 @@ DomainPie.prototype = Lib.extend(Pie.prototype,
 
     getLabelTooltipText: function(item)
     {
-        return item.label + ": " + Lib.formatSize(item.value);
+        return item.label + ": " + Lib.formatPercent(item.percent) + " " + Lib.formatSize(item.value);
     }
 });
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 function DomainTimePie() {};
-DomainPie.prototype = Lib.extend(Pie.prototype,
+DomainTimePie.prototype = Lib.extend(Pie.prototype,
 {
     title: "Comparison of total execution time from the server and browser cache by domain.",
 
     data: [
-        {value: 0, label: Strings.pieLabelDownloaded, color: "rgb(182, 0, 0)"},
+        {value: 0, percent: .1, label: Strings.pieLabelDownloaded, color: "rgb(182, 0, 0)"},
     ],
 
     getLabelTooltipText: function(item)
     {
-        return item.label + ": " + Lib.formatPercent(item.percent) + " " + Lib.formatSize(item.value);
+        return item.label + ": " + Lib.formatPercent(item.percent) + " " + Lib.formatTime(item.value);
     }
 });
 
@@ -160,6 +160,8 @@ var contentPie = new ContentPie();
 var trafficPie = new TrafficPie();
 var cachePie = new CachePie();
 var domainPie = new DomainPie();
+var domainTimePie = new DomainTimePie();
+
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -260,6 +262,7 @@ Stats.prototype = domplate(
             pages.push(null);
 
         var domainModel = {}; // bytes transferred by simple domain histogram
+        var domainTimeModel = {}; // time by simple domain histogram
 
         // Iterate over all selected pages
         for (var j=0; j<pages.length; j++)
@@ -274,6 +277,17 @@ Stats.prototype = domplate(
                 if (!entry.timings)
                     continue;
 
+                var simpleDomain = Lib.getSimpleDomain(unescape(entry.request.url));
+                if (domainModel[simpleDomain] === undefined)
+                {
+                    domainModel[simpleDomain] = 0;
+                }
+
+                if (domainTimeModel[simpleDomain] === undefined)
+                {
+                    domainTimeModel[simpleDomain] = 0;
+                }
+
                 // Get timing info (SSL is new in HAR 1.2)
                 timingPie.data[0].value += entry.timings.blocked;
                 timingPie.data[1].value += entry.timings.dns;
@@ -287,6 +301,9 @@ Stats.prototype = domplate(
                 // (to ensure backward compatibility with HAR 1.1).
                 if (entry.timings.ssl > 0)
                     timingPie.data[3].value -= entry.timings.ssl;
+
+                // collect overall time into histogram
+                domainTimeModel[simpleDomain] += entry.timings.blocked + entry.timings.dns + entry.timings.connect + entry.timings.send + entry.timings.wait + entry.timings.receive;
 
                 var response = entry.response;
                 var resBodySize = response.bodySize > 0 ? response.bodySize : 0;
@@ -328,12 +345,6 @@ Stats.prototype = domplate(
                 trafficPie.data[1].value += entry.request.bodySize > 0 ? entry.request.bodySize : 0;
                 trafficPie.data[2].value += entry.response.headersSize > 0 ? entry.response.headersSize : 0;
                 trafficPie.data[3].value += resBodySize;
-
-                var simpleDomain = Lib.getSimpleDomain(unescape(entry.request.url));
-                if (domainModel[simpleDomain] === undefined)
-                {
-                    domainModel[simpleDomain] = 0;
-                }
 
                 // Get Cache info
                 // console.log("size: " + resBodySize + " status: " + entry.response.status)
@@ -395,14 +406,61 @@ Stats.prototype = domplate(
             return 0;
         });
 
+        // assign colors after sort
+        i = 0;
+        for (entry in domainModel)
+        {
+            domainPie.data[i].color = colorChart[i % 9];
+            i++;
+        }
+
+        // create data series for domainTimePie
+        i = 0;
+        total = 0;
+        domainTimePie.data = [];
+        for (entry in domainTimeModel)
+        {
+            total += domainTimeModel[entry];
+            domainTimePie.data[i] = {value: domainTimeModel[entry], label: entry, color: colorChart[i % 9]};
+            i++;
+        }
+
+        // calculate percents
+        for (i in domainTimePie.data)
+        {
+            if (domainTimePie.data[i].value < 0)
+                domainTimePie.data[i].value = 0;
+            domainTimePie.data[i].percent = domainTimePie.data[i].value / total;
+
+        }
+
+        domainTimePie.data.sort(function(a,b){ // decending sort order
+            if (a.value < b.value)
+                return 1;
+            else if (a.value > b.value)
+                return -1;
+            return 0;
+        });
+
+        // assign colors after sort
+        i = 0;
+        for (entry in domainTimeModel)
+        {
+            domainTimePie.data[i].color = colorChart[i % 9];
+            i++;
+        }
+
         // Draw all graphs.
         Pie.draw(Lib.$(this.timingPie, "pieGraph"), timingPie);
         Pie.draw(Lib.$(this.contentPie, "pieGraph"), contentPie);
         Pie.draw(Lib.$(this.trafficPie, "pieGraph"), trafficPie);
         Pie.draw(Lib.$(this.cachePie, "pieGraph"), cachePie);
         Pie.draw(Lib.$(this.domainPie, "pieGraph"), domainPie);
+        Pie.draw(Lib.$(this.domainTimePie, "pieGraph"), domainTimePie);
 
         Pie.renderLegend(Lib.$(this.domainPie, "pieGraph"), domainPie);
+        Pie.renderLegend(Lib.$(this.domainTimePie, "pieGraph"), domainTimePie);
+
     },
 
     cleanUp: function()
@@ -412,6 +470,7 @@ Stats.prototype = domplate(
         trafficPie.cleanUp();
         cachePie.cleanUp();
         domainPie.cleanUp();
+        domainTimePie.cleanUp();
     },
 
     showInfoTip: function(infoTip, target, x, y)
@@ -484,9 +543,10 @@ Stats.prototype = domplate(
         this.trafficPie = Pie.render(trafficPie, this.element);
         this.cachePie = Pie.render(cachePie, this.element);
         this.domainPie = Pie.render(domainPie, this.element);
+        this.domainTimePie = Pie.render(domainTimePie, this.element);
 
         // This graph is the last one so remove the separator right border
-        this.domainPie.style.borderRight = 0;
+        this.domainTimePie.style.borderRight = 0;
 
         return this.element;
     }
