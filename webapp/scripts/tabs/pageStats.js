@@ -134,7 +134,7 @@ DomainPie.prototype = Lib.extend(Pie.prototype,
 
     getLabelTooltipText: function(item)
     {
-        return item.count + "x" + " " + item.label + ": " + Lib.formatSize(item.value);
+        return item.label + ": " + Lib.formatSize(item.value);
     }
 });
 
@@ -492,14 +492,6 @@ var Pie = domplate(
             )
         ),
 
-        legend:
-            FOR("item", "$pie.data",
-                DIV({"class": "pieLabel", _repObject: "$item"},
-                    SPAN({"class": "box", style: "background-color: $item.color"}, "&nbsp;"),
-                    SPAN({"class": "label"}, "$item.label")
-                )
-            ),
-
     render: function(pie, parentNode)
     {
         var root = this.tag.append({pie: pie}, parentNode);
@@ -528,15 +520,31 @@ var Pie = domplate(
     {
         var pieLegendBox = Lib.$(pie.parentElement.parentElement, "pieLegendBox");
         Lib.clearNode(pieLegendBox);
+        var divLegend = document.createElement("div");
+        divLegend.setAttribute("class", "pieLegendBoxDiv ");
+        pieLegendBox.appendChild(divLegend);
+
+        var divLeft = document.createElement("div");
+        divLeft.setAttribute("class", "pieLeftColumn ");
+        divLegend.appendChild(divLeft);
+
+        var divRight = document.createElement("div");
+        divRight.setAttribute("class", "pieRightColumn ");
+        divLegend.appendChild(divRight);
 
         // would be nice to use a domplate here to rerender the legend, but it is impossible to understand
         // doing it manually
+        var split = Math.round(parentNode.data.length / 2);
+
         for (i in parentNode.data)
         {
+            var columnDiv = i > split ? divRight : divLeft; // which column?
+
             var item = parentNode.data[i];
             var aDiv = document.createElement("div");
             aDiv.setAttribute("class", "pieLabel ");
-            pieLegendBox.appendChild(aDiv);
+            aDiv.repObject = item;
+            columnDiv.appendChild(aDiv);
 
             var aBox = document.createElement("span");
             aBox.setAttribute("class", "box ");

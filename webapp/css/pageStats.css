@@ -25,6 +25,21 @@
     cursor: default;
 }
 
+.pieLegendBoxDiv {
+    margin-left: 100px;
+}
+
+.pieLeftColumn{
+    float: left;
+    width: 100px;
+    margin-left: -100px;
+}
+
+.pieRightColumn{
+    float: right;
+    width: 100px;
+}
+
 .pieLabel SPAN {
     vertical-align: middle;
 }
