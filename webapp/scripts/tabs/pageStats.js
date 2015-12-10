@@ -124,17 +124,32 @@ CachePie.prototype = Lib.extend(Pie.prototype,
 function DomainPie() {};
 DomainPie.prototype = Lib.extend(Pie.prototype,
 {
-    title: "Comparison of downloaded data from the server and browser cache by domain.",
+    title: "Comparison of total downloaded data from the server and browser cache by domain.",
 
     data: [
-        {value: 0, label: Strings.pieLabelDownloaded, color: "rgb(182, 0, 0)"},
-        {value: 0, label: Strings.pieLabelPartial, color: "rgb(218, 218, 218)"},
-        {value: 0, label: Strings.pieLabelFromCache, color: "rgb(239, 239, 239)"}
+        {value: 0, percent: .1, label: Strings.pieLabelDownloaded, color: "rgb(182, 0, 0)"},
     ],
 
     getLabelTooltipText: function(item)
     {
         return item.label + ": " + Lib.formatSize(item.value);
+    }
+});
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+function DomainTimePie() {};
+DomainPie.prototype = Lib.extend(Pie.prototype,
+{
+    title: "Comparison of total execution time from the server and browser cache by domain.",
+
+    data: [
+        {value: 0, label: Strings.pieLabelDownloaded, color: "rgb(182, 0, 0)"},
+    ],
+
+    getLabelTooltipText: function(item)
+    {
+        return item.label + ": " + Lib.formatPercent(item.percent) + " " + Lib.formatSize(item.value);
     }
 });
 
@@ -351,18 +366,25 @@ Stats.prototype = domplate(
             "#B2912F", // (brown)
             "#B276B2", // (purple)
             "#DECF3F", // (yellow)
-            "3F15854", // (red)
+            "#F15854", // (red)
         ]
 
         // create data series for domainPie
         var numDomains = Object.keys(domainModel).length;
-        var entry, i = 0;
+        var entry, i = 0, total = 0;
 
         domainPie.data = [];
         for (entry in domainModel)
         {
+            total += domainModel[entry];
             domainPie.data[i] = {value: domainModel[entry], label: entry, color: colorChart[i % 9]};
             i++;
+        }
+
+        // calculate percents
+        for (i in domainPie.data)
+        {
+            domainPie.data[i].percent = domainPie.data[i].value / total;
         }
 
         domainPie.data.sort(function(a,b){ // decending sort order

@@ -337,6 +337,11 @@ Lib.formatNumber = function(number)
     return x1 + x2;
 };
 
+Lib.formatPercent = function(number)
+{
+    return Math.floor(number * 100) + "%";
+}
+
 Lib.formatString = function(string)
 {
     var args = Lib.cloneArray(arguments), string = args.shift();
