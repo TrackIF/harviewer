@@ -121,10 +121,30 @@ CachePie.prototype = Lib.extend(Pie.prototype,
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
+function DomainPie() {};
+DomainPie.prototype = Lib.extend(Pie.prototype,
+{
+    title: "Comparison of downloaded data from the server and browser cache by domain.",
+
+    data: [
+        {value: 0, label: Strings.pieLabelDownloaded, color: "rgb(182, 0, 0)"},
+        {value: 0, label: Strings.pieLabelPartial, color: "rgb(218, 218, 218)"},
+        {value: 0, label: Strings.pieLabelFromCache, color: "rgb(239, 239, 239)"}
+    ],
+
+    getLabelTooltipText: function(item)
+    {
+        return item.count + "x" + " " + item.label + ": " + Lib.formatSize(item.value);
+    }
+});
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
 var timingPie = new TimingPie();
 var contentPie = new ContentPie();
 var trafficPie = new TrafficPie();
 var cachePie = new CachePie();
+var domainPie = new DomainPie();
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
@@ -224,6 +244,8 @@ Stats.prototype = domplate(
         if (!pages.length)
             pages.push(null);
 
+        var domainModel = {}; // bytes transferred by simple domain histogram
+
         // Iterate over all selected pages
         for (var j=0; j<pages.length; j++)
         {
@@ -292,27 +314,73 @@ Stats.prototype = domplate(
                 trafficPie.data[2].value += entry.response.headersSize > 0 ? entry.response.headersSize : 0;
                 trafficPie.data[3].value += resBodySize;
 
+                var simpleDomain = Lib.getSimpleDomain(unescape(entry.request.url));
+                if (domainModel[simpleDomain] === undefined)
+                {
+                    domainModel[simpleDomain] = 0;
+                }
+
                 // Get Cache info
+                // console.log("size: " + resBodySize + " status: " + entry.response.status)
                 if (entry.response.status == 206) { // Partial content
                     cachePie.data[1].value += resBodySize;
+                    domainModel[simpleDomain] += resBodySize;
                     cachePie.data[1].count++;
                 }
                 else if (entry.response.status == 304) { // From cache
-                    cachePie.data[2].value += resBodySize;
+                    var cacheSize = response.content.size > 0 ? response.content.size : 0;
+                    cachePie.data[2].value += cacheSize;
+                    domainModel[simpleDomain] += cacheSize;
                     cachePie.data[2].count++;
                 }
                 else if (resBodySize > 0){ // Downloaded
                     cachePie.data[0].value += resBodySize;
+                    domainModel[simpleDomain] += resBodySize;
                     cachePie.data[0].count++;
                 }
             }
         }
+
+        // chart colors
+        var colorChart = [
+            "#4D4D4D", // (gray)
+            "#5DA5DA", // (blue)
+            "#FAA43A", // (orange)
+            "#60BD68", // (green)
+            "#F17CB0", // (pink)
+            "#B2912F", // (brown)
+            "#B276B2", // (purple)
+            "#DECF3F", // (yellow)
+            "3F15854", // (red)
+        ]
+
+        // create data series for domainPie
+        var numDomains = Object.keys(domainModel).length;
+        var entry, i = 0;
+
+        domainPie.data = [];
+        for (entry in domainModel)
+        {
+            domainPie.data[i] = {value: domainModel[entry], label: entry, color: colorChart[i % 9]};
+            i++;
+        }
+
+        domainPie.data.sort(function(a,b){ // decending sort order
+            if (a.value < b.value)
+                return 1;
+            else if (a.value > b.value)
+                return -1;
+            return 0;
+        });
 
         // Draw all graphs.
         Pie.draw(Lib.$(this.timingPie, "pieGraph"), timingPie);
         Pie.draw(Lib.$(this.contentPie, "pieGraph"), contentPie);
         Pie.draw(Lib.$(this.trafficPie, "pieGraph"), trafficPie);
         Pie.draw(Lib.$(this.cachePie, "pieGraph"), cachePie);
+        Pie.draw(Lib.$(this.domainPie, "pieGraph"), domainPie);
+
+        Pie.renderLegend(Lib.$(this.domainPie, "pieGraph"), domainPie);
     },
 
     cleanUp: function()
@@ -321,6 +389,7 @@ Stats.prototype = domplate(
         contentPie.cleanUp();
         trafficPie.cleanUp();
         cachePie.cleanUp();
+        domainPie.cleanUp();
     },
 
     showInfoTip: function(infoTip, target, x, y)
@@ -392,9 +461,10 @@ Stats.prototype = domplate(
         this.contentPie = Pie.render(contentPie, this.element);
         this.trafficPie = Pie.render(trafficPie, this.element);
         this.cachePie = Pie.render(cachePie, this.element);
+        this.domainPie = Pie.render(domainPie, this.element);
 
         // This graph is the last one so remove the separator right border
-        this.cachePie.style.borderRight = 0;
+        this.domainPie.style.borderRight = 0;
 
         return this.element;
     }
@@ -410,7 +480,7 @@ var Pie = domplate(
             TBODY(
                 TR(
                     TD({"class": "pieBox", title: "$pie.title"}),
-                    TD(
+                    TD({"class": "pieLegendBox"},
                         FOR("item", "$pie.data",
                             DIV({"class": "pieLabel", _repObject: "$item"},
                                 SPAN({"class": "box", style: "background-color: $item.color"}, "&nbsp;"),
@@ -421,6 +491,14 @@ var Pie = domplate(
                 )
             )
         ),
+
+        legend:
+            FOR("item", "$pie.data",
+                DIV({"class": "pieLabel", _repObject: "$item"},
+                    SPAN({"class": "box", style: "background-color: $item.color"}, "&nbsp;"),
+                    SPAN({"class": "label"}, "$item.label")
+                )
+            ),
 
     render: function(pie, parentNode)
     {
@@ -443,6 +521,35 @@ var Pie = domplate(
             G_vmlCanvasManager.initElement(el);
 
         return root;
+    },
+
+    // ** Rerender the legend if the data processing afterwards has changed it! No idea how to do this in a domplate style
+    renderLegend: function(pie, parentNode)
+    {
+        var pieLegendBox = Lib.$(pie.parentElement.parentElement, "pieLegendBox");
+        Lib.clearNode(pieLegendBox);
+
+        // would be nice to use a domplate here to rerender the legend, but it is impossible to understand
+        // doing it manually
+        for (i in parentNode.data)
+        {
+            var item = parentNode.data[i];
+            var aDiv = document.createElement("div");
+            aDiv.setAttribute("class", "pieLabel ");
+            pieLegendBox.appendChild(aDiv);
+
+            var aBox = document.createElement("span");
+            aBox.setAttribute("class", "box ");
+            aBox.setAttribute("style", "background-color: " + item.color);
+            aBox.innerHTML = "&nbsp;";
+            aDiv.appendChild(aBox);
+
+            var aLabel = document.createElement("span");
+            aLabel.setAttribute("class", "label ");
+            aLabel.innerHTML = item.label;
+            aDiv.appendChild(aLabel);           
+        }
+
     },
 
     draw: function(canvas, pie)

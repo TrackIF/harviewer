@@ -444,7 +444,9 @@ Lib.getSimpleDomain = function(url)
 {
     try
     {
-        
+        if (url.search(/hdfavorite/) != -1) // attribute trackif's snap to trackif, not cloudfront
+            return "trackif";
+
         var reSimpleDomain = /^https?:\/\/\/?(?:([-\w]+)\.)+/gmi;
         var m = reSimpleDomain.exec(url);
         if (!m)
@@ -456,7 +458,7 @@ Lib.getSimpleDomain = function(url)
     }
     catch (e)
     {
-
+        Trace.log(unescape(url));
     }
 };
 
