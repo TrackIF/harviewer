@@ -26,18 +26,18 @@
 }
 
 .pieLegendBoxDiv {
-    margin-left: 130px;
+    margin-left: 150px;
 }
 
 .pieLeftColumn{
     float: left;
-    width: 130px;
-    margin-left: -130px;
+    width: 150px;
+    margin-left: -150px;
 }
 
 .pieRightColumn{
     float: right;
-    width: 130px;
+    width: 150px;
 }
 
 .pieLabel SPAN {

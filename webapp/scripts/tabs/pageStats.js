@@ -636,6 +636,11 @@ var Pie = domplate(
 
             var aLabel = document.createElement("span");
             aLabel.setAttribute("class", "label ");
+            aLabel.innerHTML = Lib.formatPercent(item.percent);
+            aDiv.appendChild(aLabel);     
+
+            aLabel = document.createElement("span");
+            aLabel.setAttribute("class", "label ");
             aLabel.innerHTML = item.label;
             aDiv.appendChild(aLabel);           
         }
